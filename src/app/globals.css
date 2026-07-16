@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+:root {
+  --color-ink: #000000;
+  --color-paper: #ffffff;
+  --color-ash: #888888;
+  --color-mist: #f5f5f5;
+  --color-charcoal: #1a1a1a;
+  --color-smoke: #e5e5e5;
+  --font-display: var(--font-josefin), "Josefin Sans", sans-serif;
+  --font-body: Arial, Helvetica, sans-serif;
+}
+
+@theme inline {
+  --color-ink: var(--color-ink);
+  --color-paper: var(--color-paper);
+  --color-ash: var(--color-ash);
+  --color-mist: var(--color-mist);
+  --color-charcoal: var(--color-charcoal);
+  --color-smoke: var(--color-smoke);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+/* Subtle page fade-in */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.6s ease-out forwards;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-mist);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-ash);
+  border-radius: 3px;
+}
