@@ -74,6 +74,12 @@ export interface CheckoutOrder {
   customerPhone: string;
   productId: string;
   amount: number;
+  shippingAmount: number;
+  totalAmount: number;
+  shippingZip: string;
+  shippingCity: string;
+  shippingState: string;
+  shippingAddress: string;
   paymentMethod: PaymentMethod;
   status: "pending" | "paid" | "cancelled";
   createdAt: string;

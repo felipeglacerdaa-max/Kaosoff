@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createCheckoutOrder } from "@/lib/api";
 import { PaymentMethod } from "@/lib/types";
+import { calculateShippingQuote } from "@/lib/shipping";
 import {
   applySecurityHeaders,
   checkRateLimit,
@@ -34,9 +35,13 @@ export async function POST(request: NextRequest) {
     const customerCpf = sanitizeText(body.customerCpf);
     const productId = sanitizeText(body.productId);
     const amount = Number(body.amount);
+    const shippingZip = sanitizeText(body.shippingZip || body.cep);
+    const shippingAddress = sanitizeText(body.shippingAddress);
+    const shippingCity = sanitizeText(body.shippingCity);
+    const shippingState = sanitizeText(body.shippingState);
     const paymentMethod = body.paymentMethod;
 
-    if (!customerName || !customerEmail || !customerPhone || !customerCpf || !productId || Number.isNaN(amount) || !["pix", "card"].includes(paymentMethod as string)) {
+    if (!customerName || !customerEmail || !customerPhone || !customerCpf || !productId || Number.isNaN(amount) || !shippingZip || !shippingAddress || !shippingCity || !shippingState || !["pix", "card"].includes(paymentMethod as string)) {
       const response = NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
       applySecurityHeaders(response);
       return response;
@@ -48,6 +53,10 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
+    const shippingQuote = await calculateShippingQuote(shippingZip, amount);
+    const shippingAmount = Number(shippingQuote.amount.toFixed(2));
+    const totalAmount = Number((amount + shippingAmount).toFixed(2));
+
     const order = await createCheckoutOrder({
       customerName,
       customerEmail,
@@ -55,6 +64,12 @@ export async function POST(request: NextRequest) {
       customerCpf,
       productId,
       amount,
+      shippingAmount,
+      totalAmount,
+      shippingZip,
+      shippingCity,
+      shippingState,
+      shippingAddress,
       paymentMethod: paymentMethod as PaymentMethod,
     });
     const response = NextResponse.json(order);

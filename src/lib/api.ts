@@ -90,6 +90,12 @@ function mapCheckoutRow(row: SupabaseRow): CheckoutOrder {
     customerPhone: getString(row, "customer_phone"),
     productId: getString(row, "product_id"),
     amount: getNumber(row, "amount"),
+    shippingAmount: getNumber(row, "shipping_amount"),
+    totalAmount: getNumber(row, "total_amount"),
+    shippingZip: getString(row, "shipping_zip"),
+    shippingCity: getString(row, "shipping_city"),
+    shippingState: getString(row, "shipping_state"),
+    shippingAddress: getString(row, "shipping_address"),
     paymentMethod: getString(row, "payment_method") as CheckoutOrder["paymentMethod"],
     status: getString(row, "status") as CheckoutOrder["status"],
     createdAt: getString(row, "created_at"),
@@ -381,22 +387,7 @@ export async function deleteDrop(id: string): Promise<boolean> {
 
 export async function createCheckoutOrder(data: Omit<CheckoutOrder, "id" | "orderNumber" | "status" | "createdAt">): Promise<CheckoutOrder> {
   const client = getSupabaseOrNull();
-  if (!client) {
-    return {
-      id: `checkout-${Date.now()}`,
-      orderNumber: generateOrderNumber(),
-      customerCpf: normalizeCpf(data.customerCpf),
-      customerName: data.customerName,
-      customerEmail: data.customerEmail,
-      customerPhone: data.customerPhone,
-      productId: data.productId,
-      amount: data.amount,
-      paymentMethod: data.paymentMethod,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    };
-  }
-  const order = {
+  const baseOrder = {
     id: `checkout-${Date.now()}`,
     order_number: generateOrderNumber(),
     customer_name: data.customerName,
@@ -409,8 +400,45 @@ export async function createCheckoutOrder(data: Omit<CheckoutOrder, "id" | "orde
     status: "pending",
     created_at: new Date().toISOString(),
   };
-  const { data: inserted, error } = await client.from("checkout_orders").insert(order).select("*").single();
-  if (error) throw error;
+
+  const orderWithShipping = {
+    ...baseOrder,
+    shipping_amount: data.shippingAmount,
+    total_amount: data.totalAmount,
+    shipping_zip: data.shippingZip,
+    shipping_city: data.shippingCity,
+    shipping_state: data.shippingState,
+    shipping_address: data.shippingAddress,
+  };
+
+  if (!client) {
+    return {
+      id: baseOrder.id,
+      orderNumber: baseOrder.order_number,
+      customerCpf: normalizeCpf(data.customerCpf),
+      customerName: data.customerName,
+      customerEmail: data.customerEmail,
+      customerPhone: data.customerPhone,
+      productId: data.productId,
+      amount: data.amount,
+      shippingAmount: data.shippingAmount,
+      totalAmount: data.totalAmount,
+      shippingZip: data.shippingZip,
+      shippingCity: data.shippingCity,
+      shippingState: data.shippingState,
+      shippingAddress: data.shippingAddress,
+      paymentMethod: data.paymentMethod,
+      status: "pending",
+      createdAt: baseOrder.created_at,
+    };
+  }
+
+  const { data: inserted, error } = await client.from("checkout_orders").insert(orderWithShipping).select("*").single();
+  if (error) {
+    const { data: fallbackInserted, error: fallbackError } = await client.from("checkout_orders").insert(baseOrder).select("*").single();
+    if (fallbackError) throw fallbackError;
+    return mapCheckoutRow(fallbackInserted);
+  }
   return mapCheckoutRow(inserted);
 }
 

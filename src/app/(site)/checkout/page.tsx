@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState, useEffect, FormEvent, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { getProductBySlug } from "@/lib/api";
 import { Product, PaymentMethod } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
 import { Input } from "@/components/ui/Input";
@@ -21,17 +20,85 @@ function CheckoutContent() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
   const [step, setStep] = useState<"form" | "payment" | "done">("form");
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [shippingZip, setShippingZip] = useState("");
+  const [shippingAddress, setShippingAddress] = useState("");
+  const [shippingCity, setShippingCity] = useState("");
+  const [shippingState, setShippingState] = useState("");
+  const [shippingAmount, setShippingAmount] = useState(0);
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingQuoteLabel, setShippingQuoteLabel] = useState("Digite o CEP para calcular o frete");
 
   useEffect(() => {
     if (!productSlug) {
       setLoading(false);
       return;
     }
-    getProductBySlug(productSlug).then((p) => {
-      setProduct(p);
-      setLoading(false);
-    });
+
+    async function loadProduct() {
+      try {
+        const response = await fetch(`/api/products/${productSlug}`);
+        if (!response.ok) {
+          setProduct(null);
+          setLoading(false);
+          return;
+        }
+        const data = await response.json();
+        setProduct(data);
+      } catch {
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProduct();
   }, [productSlug]);
+
+  useEffect(() => {
+    if (!product) {
+      return;
+    }
+
+    const normalizedZip = shippingZip.replace(/\D/g, "");
+    if (normalizedZip.length !== 8) {
+      setShippingAmount(0);
+      setShippingQuoteLabel("Digite o CEP para calcular o frete");
+      setShippingLoading(false);
+      return;
+    }
+
+    const timeout = window.setTimeout(async () => {
+      setShippingLoading(true);
+      const controller = new AbortController();
+      const timer = window.setTimeout(() => controller.abort(), 5000);
+
+      try {
+        const response = await fetch("/api/shipping/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ destinationZip: normalizedZip, productPrice: product.price }),
+          signal: controller.signal,
+        });
+        const quote = await response.json();
+        const safeAmount = Number(quote?.amount ?? 0);
+        const safeDeadline = Number(quote?.deadline ?? 0);
+        setShippingAmount(Number(safeAmount.toFixed(2)));
+        setShippingQuoteLabel(
+          `Frete estimado: ${formatPrice(safeAmount)} · prazo ${safeDeadline || 5} dias`
+        );
+      } catch {
+        setShippingAmount(0);
+        setShippingQuoteLabel("Frete indisponível no momento. Tente novamente em instantes.");
+      } finally {
+        window.clearTimeout(timer);
+        setShippingLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [product, shippingZip]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -51,6 +118,10 @@ function CheckoutContent() {
         customerCpf: form.get("cpf"),
         productId: product.id,
         amount: product.price,
+        shippingZip,
+        shippingAddress,
+        shippingCity,
+        shippingState,
         paymentMethod,
       }),
     });
@@ -108,33 +179,89 @@ function CheckoutContent() {
   }
 
   return (
-    <div className="grid md:grid-cols-2 gap-12 md:gap-20">
-      <div className="flex gap-4 items-start">
-        <div className="relative w-24 h-32 bg-mist flex-shrink-0 overflow-hidden">
-          <Image
-            src={product.images[0]}
-            alt={product.name}
-            fill
-            className="object-cover"
-            sizes="96px"
-          />
+    <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:gap-8">
+      <div className="rounded-[1.25rem] border border-smoke/70 bg-paper/90 p-4 shadow-sm sm:p-5">
+        <div className="flex items-start gap-3">
+          <div className="relative h-24 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-mist">
+            <Image
+              src={product.images[0]}
+              alt={product.name}
+              fill
+              className="object-cover"
+              sizes="80px"
+            />
+          </div>
+          <div className="min-w-0">
+            <h2 className="font-display text-base tracking-wide">{product.name}</h2>
+            <p className="mt-1 text-sm text-ash">Peça única</p>
+            <p className="mt-3 text-lg font-medium">{formatPrice(product.price)}</p>
+          </div>
         </div>
-        <div>
-          <h2 className="font-display text-lg tracking-wide">{product.name}</h2>
-          <p className="text-sm text-ash mt-1">Peça única</p>
-          <p className="text-lg mt-3">{formatPrice(product.price)}</p>
+
+        <div className="mt-4 rounded-xl border border-smoke/70 bg-mist/60 p-3 text-sm">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-ash">Resumo</p>
+          <div className="mt-2 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span>Produto</span>
+              <span>{formatPrice(product.price)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Frete</span>
+              <span>{shippingLoading ? "Calculando..." : formatPrice(shippingAmount)}</span>
+            </div>
+            <div className="flex items-center justify-between font-medium">
+              <span>Total</span>
+              <span>{formatPrice(product.price + shippingAmount)}</span>
+            </div>
+          </div>
+          <p className="mt-2 text-[11px] text-ash">{shippingQuoteLabel}</p>
         </div>
       </div>
 
       {step === "form" ? (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Input name="nome" label="Nome completo" required />
-          <Input name="email" label="E-mail" type="email" required />
-          <Input name="telefone" label="Telefone" type="tel" required />
-          <Input name="cpf" label="CPF" required />
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-[1.25rem] border border-smoke/70 bg-paper/90 p-4 shadow-sm sm:p-5">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input name="nome" label="Nome completo" required />
+            <Input name="email" label="E-mail" type="email" required />
+            <Input name="telefone" label="Telefone" type="tel" required />
+            <Input name="cpf" label="CPF" required />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              name="cep"
+              label="CEP"
+              placeholder="31270-000"
+              maxLength={9}
+              value={shippingZip}
+              onChange={(event) => setShippingZip(event.target.value)}
+              required
+            />
+            <Input
+              name="cidade"
+              label="Cidade"
+              value={shippingCity}
+              onChange={(event) => setShippingCity(event.target.value)}
+              required
+            />
+          </div>
+          <Input
+            name="endereco"
+            label="Endereço completo"
+            value={shippingAddress}
+            onChange={(event) => setShippingAddress(event.target.value)}
+            required
+          />
+          <Input
+            name="estado"
+            label="Estado"
+            value={shippingState}
+            onChange={(event) => setShippingState(event.target.value)}
+            required
+          />
 
           <fieldset>
-            <legend className="text-xs tracking-widest uppercase text-ash font-display mb-3">
+            <legend className="mb-2 text-[10px] uppercase tracking-[0.3em] text-ash">
               Forma de pagamento
             </legend>
             <div className="space-y-2">
@@ -147,11 +274,11 @@ function CheckoutContent() {
               ).map((method) => (
                 <label
                   key={method.value}
-                  className={`flex items-center gap-3 p-3 border cursor-pointer transition-colors ${
+                  className={`flex items-center gap-3 rounded-lg border p-2.5 text-sm transition-colors ${
                     paymentMethod === method.value
                       ? "border-ink bg-mist"
                       : "border-smoke hover:border-ash"
-                  } ${method.value === "boleto" ? "opacity-50 cursor-not-allowed" : ""}`}
+                  } ${method.value === "boleto" ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
                 >
                   <input
                     type="radio"
@@ -164,44 +291,44 @@ function CheckoutContent() {
                     disabled={method.value === "boleto"}
                     className="accent-ink"
                   />
-                  <span className="text-sm">{method.label}</span>
+                  <span>{method.label}</span>
                 </label>
               ))}
             </div>
           </fieldset>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? "Processando..." : `Pagar ${formatPrice(product.price)}`}
+            {submitting ? "Processando..." : `Pagar ${formatPrice(product.price + shippingAmount)}`}
           </Button>
 
-          <p className="text-[10px] text-ash leading-relaxed">
+          <p className="text-[10px] leading-relaxed text-ash">
             Pagamento processado de forma segura. Integração com gateway
             (Mercado Pago / Stripe / Pagar.me) será ativada em produção.
           </p>
         </form>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4 rounded-[1.25rem] border border-smoke/70 bg-paper/90 p-4 shadow-sm sm:p-5">
           {paymentMethod === "pix" && (
-            <div className="border border-smoke p-6 text-center space-y-4">
-              <p className="text-xs tracking-widest uppercase text-ash">
+            <div className="rounded-xl border border-smoke p-4 text-center">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-ash">
                 QR Code Pix (simulado)
               </p>
-              <div className="w-48 h-48 bg-mist mx-auto flex items-center justify-center text-ash text-xs">
+              <div className="mx-auto mt-3 flex h-40 w-40 items-center justify-center rounded-lg bg-mist text-xs text-ash">
                 QR Code
               </div>
-              <p className="text-sm">
-                Valor: <strong>{formatPrice(product.price)}</strong>
+              <p className="mt-3 text-sm">
+                Valor: <strong>{formatPrice(product.price + shippingAmount)}</strong>
               </p>
             </div>
           )}
 
           {paymentMethod === "card" && (
-            <div className="border border-smoke p-6 space-y-4">
-              <p className="text-xs tracking-widest uppercase text-ash">
+            <div className="space-y-3 rounded-xl border border-smoke p-4">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-ash">
                 Cartão de crédito (simulado)
               </p>
               <Input label="Número do cartão" placeholder="0000 0000 0000 0000" />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <Input label="Validade" placeholder="MM/AA" />
                 <Input label="CVV" placeholder="000" />
               </div>
@@ -219,7 +346,7 @@ function CheckoutContent() {
 
 export default function CheckoutPage() {
   return (
-    <div className="max-w-4xl mx-auto px-6 md:px-8 py-12 md:py-20">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8 md:py-12">
       <SectionHeading title="Checkout" />
       <Suspense fallback={<p className="text-sm text-ash">Carregando...</p>}>
         <CheckoutContent />
