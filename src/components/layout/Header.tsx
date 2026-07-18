@@ -39,6 +39,12 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/admin"
+            className="rounded-full border border-ink/15 bg-ink px-3 py-2 text-[10px] font-medium uppercase tracking-[0.3em] text-paper transition-opacity hover:opacity-80"
+          >
+            Admin
+          </Link>
         </nav>
 
         <button
@@ -67,6 +73,13 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/admin"
+            onClick={() => setMenuOpen(false)}
+            className="inline-flex w-fit items-center rounded-full border border-ink/15 bg-ink px-4 py-2 text-sm font-medium uppercase tracking-[0.3em] text-paper transition-opacity hover:opacity-80"
+          >
+            Ir para o Admin
+          </Link>
         </nav>
       </div>
     </header>
