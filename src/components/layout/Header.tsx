@@ -18,21 +18,23 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 bg-paper/95 backdrop-blur-sm border-b border-smoke">
-      <div className="max-w-7xl mx-auto px-6 md:px-8 flex items-center justify-between h-16 md:h-20">
-        <Link
-          href="/"
-          className="font-display text-xl md:text-2xl tracking-[0.15em] uppercase hover:opacity-70 transition-opacity"
-        >
-          {SITE_CONFIG.name}
+    <header className="sticky top-0 z-40 border-b border-smoke/80 bg-paper/90 backdrop-blur-xl shadow-[0_10px_30px_rgba(20,17,15,0.03)]">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 md:h-20 md:px-8">
+        <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-70">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-ink/15 bg-mist text-[10px] font-semibold uppercase tracking-[0.3em]">
+            K
+          </span>
+          <span className="font-display text-lg tracking-[0.2em] uppercase md:text-xl">
+            {SITE_CONFIG.name}
+          </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8" aria-label="Principal">
+        <nav className="hidden items-center gap-8 md:flex" aria-label="Principal">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-xs tracking-widest uppercase hover:opacity-70 transition-opacity duration-300"
+              className="relative text-[10px] uppercase tracking-[0.35em] transition-opacity duration-300 hover:opacity-70 after:absolute after:-bottom-2 after:left-0 after:h-px after:w-full after:scale-x-0 after:bg-ink after:transition-transform hover:after:scale-x-100"
             >
               {link.label}
             </Link>
@@ -40,7 +42,7 @@ export function Header() {
         </nav>
 
         <button
-          className="md:hidden p-2 -mr-2"
+          className="-mr-2 rounded-full p-2 transition-colors hover:bg-mist md:hidden"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
         >
@@ -50,17 +52,17 @@ export function Header() {
 
       <div
         className={cn(
-          "md:hidden fixed inset-0 top-16 bg-paper z-30 transition-transform duration-300",
+          "fixed inset-0 top-16 z-30 bg-paper/95 transition-transform duration-300 md:hidden",
           menuOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
-        <nav className="flex flex-col px-8 py-10 gap-6" aria-label="Mobile">
+        <nav className="flex flex-col gap-6 px-8 py-10" aria-label="Mobile">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={() => setMenuOpen(false)}
-              className="font-display text-2xl tracking-wide hover:opacity-70 transition-opacity"
+              className="font-display text-2xl tracking-wide transition-opacity hover:opacity-70"
             >
               {link.label}
             </Link>

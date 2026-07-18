@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent, ChangeEvent } from "react";
 import { Drop } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -13,6 +13,8 @@ export default function AdminDropsPage() {
   const [drops, setDrops] = useState<Drop[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedCoverImage, setSelectedCoverImage] = useState<string | null>(null);
+  const [selectedCoverImageName, setSelectedCoverImageName] = useState("Nenhuma foto anexada");
 
   async function loadDrops() {
     const res = await fetch("/api/admin/drops");
@@ -25,6 +27,20 @@ export default function AdminDropsPage() {
     loadDrops();
   }, []);
 
+  function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setSelectedCoverImage(reader.result);
+        setSelectedCoverImageName(file.name);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
   async function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
@@ -36,9 +52,12 @@ export default function AdminDropsPage() {
         description: form.get("description"),
         launchDate: new Date(form.get("launchDate") as string).toISOString(),
         isActive: form.get("isActive") === "true",
+        coverImage: selectedCoverImage || undefined,
       }),
     });
     setShowForm(false);
+    setSelectedCoverImage(null);
+    setSelectedCoverImageName("Nenhuma foto anexada");
     loadDrops();
     e.currentTarget.reset();
   }
@@ -86,6 +105,34 @@ export default function AdminDropsPage() {
             type="datetime-local"
             required
           />
+          <div className="border border-dashed border-smoke p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Foto da coleção</p>
+                <p className="text-xs text-ash">{selectedCoverImageName}</p>
+              </div>
+              <label className="inline-flex cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={handleImageSelect}
+                />
+                <span className="inline-flex items-center justify-center rounded-none border border-ink/20 bg-ink px-4 py-2 text-[10px] tracking-[0.35em] uppercase text-paper transition-all duration-300 hover:bg-charcoal">
+                  Anexar foto
+                </span>
+              </label>
+            </div>
+            {selectedCoverImage && (
+              <div className="relative h-40 w-full overflow-hidden border border-smoke bg-mist">
+                <img
+                  src={selectedCoverImage}
+                  alt="Preview da foto"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            )}
+          </div>
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"

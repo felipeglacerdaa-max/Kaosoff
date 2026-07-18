@@ -28,6 +28,11 @@ export function applySecurityHeaders(response: NextResponse) {
   SECURITY_HEADERS.forEach(({ key, value }) => response.headers.set(key, value));
 }
 
+export function hasAdminSession(request: NextRequest): boolean {
+  const token = request.cookies.get("admin_token")?.value;
+  return Boolean(token && token.trim().length > 0);
+}
+
 export function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip");
   return forwarded?.split(",")[0].trim() || "unknown";

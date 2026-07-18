@@ -26,8 +26,9 @@ export default function AdminLoginPage() {
         }),
       });
 
+      const payload = await res.json().catch(() => null);
       if (!res.ok) {
-        setError("Credenciais inválidas.");
+        setError(payload?.error || "Credenciais inválidas.");
         return;
       }
 
@@ -58,7 +59,7 @@ export default function AdminLoginPage() {
             label="E-mail"
             type="email"
             required
-            defaultValue="admin@kaosoff.com.br"
+            defaultValue="email de adm"
           />
           <Input name="password" label="Senha" type="password" required />
 

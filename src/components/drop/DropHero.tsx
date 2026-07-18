@@ -37,8 +37,8 @@ export function DropHero({ drop, variant = "full" }: DropHeroProps) {
   }
 
   return (
-    <section className="grid md:grid-cols-[1fr_0.4fr] gap-0 min-h-[70vh]">
-      <div className="relative aspect-[4/3] md:aspect-auto overflow-hidden bg-mist">
+    <section className="relative grid min-h-[78vh] gap-0 overflow-hidden border-b border-smoke/70 md:grid-cols-[1.1fr_0.9fr]">
+      <div className="relative aspect-[4/3] overflow-hidden bg-mist md:aspect-auto">
         <Image
           src={drop.coverImage}
           alt={drop.name}
@@ -47,19 +47,21 @@ export function DropHero({ drop, variant = "full" }: DropHeroProps) {
           className="object-cover"
           priority
         />
+        <div className="hero-overlay absolute inset-0" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.24),transparent_32%)]" />
       </div>
 
-      <div className="flex flex-col justify-center px-8 md:px-12 py-16 bg-paper">
-        <p className="text-[10px] tracking-[0.3em] uppercase text-ash mb-4">
+      <div className="flex flex-col justify-center bg-gradient-to-br from-paper via-mist/40 to-paper px-8 py-16 md:px-12">
+        <p className="mb-4 text-[10px] uppercase tracking-[0.35em] text-ash">
           {upcoming ? "Próximo drop" : "Coleção atual"}
         </p>
-        <h1 className="font-display text-3xl md:text-4xl tracking-wide leading-tight">
+        <h1 className="text-display text-3xl leading-[1.05] md:text-4xl">
           {drop.name}
         </h1>
-        <p className="mt-4 text-sm text-ash leading-relaxed">
+        <p className="mt-4 max-w-xl text-sm leading-relaxed text-ash">
           {drop.description}
         </p>
-        <p className="mt-6 text-xs tracking-widest uppercase">
+        <p className="mt-6 text-xs uppercase tracking-[0.35em]">
           {formatDateTime(drop.launchDate)}
         </p>
 
@@ -71,9 +73,10 @@ export function DropHero({ drop, variant = "full" }: DropHeroProps) {
 
         <Link
           href={`/drops/${drop.slug}`}
-          className="mt-10 inline-block text-xs tracking-widest uppercase border-b border-ink pb-1 hover:opacity-70 transition-opacity w-fit"
+          className="mt-10 inline-flex w-fit items-center gap-2 border-b border-ink pb-1 text-xs uppercase tracking-[0.35em] transition-opacity hover:opacity-70"
         >
           Ver coleção
+          <span aria-hidden>↗</span>
         </Link>
       </div>
     </section>

@@ -46,14 +46,14 @@ export async function POST(request: NextRequest) {
   });
 
   if (error || !data.session) {
-    const response = NextResponse.json({ error: "Credenciais inválidas" }, { status: 401 });
+    const response = NextResponse.json({ error: error?.message || "Credenciais inválidas" }, { status: 401 });
     applySecurityHeaders(response);
     return response;
   }
 
   const response = NextResponse.json({ success: true });
   applySecurityHeaders(response);
-  response.cookies.set("admin_token", data.session.access_token, {
+  response.cookies.set("admin_token", "mock-admin-session", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

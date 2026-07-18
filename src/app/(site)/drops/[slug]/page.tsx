@@ -33,7 +33,7 @@ export default async function DropPage({ params }: PageProps) {
 
   return (
     <>
-      <section className="relative min-h-[50vh] flex items-end">
+      <section className="relative flex min-h-[56vh] items-end overflow-hidden border-b border-smoke/70">
         <Image
           src={drop.coverImage}
           alt={drop.name}
@@ -42,40 +42,50 @@ export default async function DropPage({ params }: PageProps) {
           priority
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-paper via-paper/60 to-transparent" />
-        <div className="relative max-w-7xl mx-auto px-6 md:px-8 py-16 w-full">
-          <p className="text-[10px] tracking-[0.3em] uppercase text-ash">
-            {formatDateTime(drop.launchDate)}
-          </p>
-          <h1 className="font-display text-3xl md:text-5xl tracking-wide mt-2">
-            {drop.name}
-          </h1>
-          <p className="mt-4 text-sm text-ash max-w-xl leading-relaxed">
-            {drop.description}
-          </p>
+        <div className="absolute inset-0 bg-gradient-to-t from-paper via-paper/70 to-transparent" />
+        <div className="relative mx-auto w-full max-w-7xl px-6 py-16 md:px-8 md:py-24">
+          <div className="max-w-2xl rounded-[1.5rem] border border-paper/40 bg-paper/70 p-6 backdrop-blur-sm md:p-8">
+            <p className="text-[10px] uppercase tracking-[0.35em] text-ash">
+              {formatDateTime(drop.launchDate)}
+            </p>
+            <h1 className="mt-2 font-display text-3xl tracking-wide md:text-5xl">
+              {drop.name}
+            </h1>
+            <p className="mt-4 text-sm leading-relaxed text-ash">
+              {drop.description}
+            </p>
+          </div>
         </div>
       </section>
 
       {upcoming && (
-        <section className="max-w-7xl mx-auto px-6 md:px-8 py-12 border-b border-smoke">
-          <p className="text-[10px] tracking-widest uppercase text-ash mb-6 text-center">
-            Lançamento em
-          </p>
-          <CountdownTimer
-            targetDate={drop.launchDate}
-            className="flex justify-center"
-          />
+        <section className="mx-auto max-w-7xl border-b border-smoke/70 px-6 py-12 md:px-8">
+          <div className="rounded-[1.5rem] border border-smoke/70 bg-gradient-to-br from-paper via-mist/50 to-paper p-8">
+            <p className="mb-6 text-center text-[10px] uppercase tracking-[0.35em] text-ash">
+              Lançamento em
+            </p>
+            <CountdownTimer
+              targetDate={drop.launchDate}
+              className="flex justify-center"
+            />
+          </div>
         </section>
       )}
 
-      <section className="max-w-7xl mx-auto px-6 md:px-8 py-16 md:py-20">
-        <h2 className="font-display text-xl tracking-wide mb-10">
-          Peças da coleção
-        </h2>
+      <section className="mx-auto max-w-7xl px-6 py-16 md:px-8 md:py-20">
+        <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.35em] text-ash">Coleção</p>
+            <h2 className="mt-2 font-display text-xl tracking-wide">
+              Peças da coleção
+            </h2>
+          </div>
+          <p className="text-sm text-ash">Uma seleção de peças apresentadas em contexto e disponibilidade.</p>
+        </div>
         {products.length === 0 ? (
           <p className="text-sm text-ash">Nenhuma peça nesta coleção ainda.</p>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-3 md:gap-8 lg:grid-cols-4">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

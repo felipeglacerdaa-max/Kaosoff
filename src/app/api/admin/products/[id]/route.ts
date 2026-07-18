@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateProduct, deleteProduct, markProductAsSold } from "@/lib/api";
+import { hasAdminSession } from "@/lib/security";
 
 function isAdmin(request: NextRequest) {
-  return request.cookies.get("admin_token")?.value === "mock-admin-session";
+  return hasAdminSession(request);
 }
 
 export async function PATCH(

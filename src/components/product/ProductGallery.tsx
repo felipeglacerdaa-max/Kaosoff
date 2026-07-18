@@ -14,7 +14,7 @@ export function ProductGallery({ images, alt }: ProductGalleryProps) {
 
   return (
     <div className="space-y-4">
-      <div className="relative aspect-[4/5] bg-mist overflow-hidden">
+      <div className="relative aspect-[4/5] overflow-hidden rounded-[1.75rem] border border-smoke/80 bg-mist shadow-[0_20px_60px_rgba(20,17,15,0.08)]">
         <Image
           src={images[activeIndex]}
           alt={`${alt} — foto ${activeIndex + 1}`}
@@ -32,8 +32,8 @@ export function ProductGallery({ images, alt }: ProductGalleryProps) {
               key={img}
               onClick={() => setActiveIndex(i)}
               className={cn(
-                "relative w-16 h-20 flex-shrink-0 overflow-hidden border-2 transition-colors duration-300",
-                i === activeIndex ? "border-ink" : "border-transparent opacity-60 hover:opacity-100"
+                "relative h-20 w-16 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-all duration-300",
+                i === activeIndex ? "border-ink shadow-sm" : "border-transparent opacity-60 hover:opacity-100"
               )}
               aria-label={`Ver foto ${i + 1}`}
             >

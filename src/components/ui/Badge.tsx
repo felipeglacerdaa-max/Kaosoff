@@ -7,10 +7,10 @@ interface BadgeProps {
 }
 
 const variants = {
-  default: "bg-ink text-paper",
+  default: "bg-ink text-paper shadow-[0_8px_24px_rgba(20,17,15,0.16)]",
   sold: "bg-ash text-paper",
-  unique: "bg-transparent border border-ink text-ink",
-  sale: "bg-ink text-paper",
+  unique: "border border-ink/20 bg-paper/90 text-ink backdrop-blur-sm",
+  sale: "bg-charcoal text-paper shadow-[0_8px_24px_rgba(20,17,15,0.16)]",
 };
 
 export function Badge({ children, variant = "default", className }: BadgeProps) {

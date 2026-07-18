@@ -16,16 +16,21 @@ export function SectionHeading({
   return (
     <div
       className={cn(
-        "mb-12",
+        "mb-8 md:mb-10",
         align === "center" && "text-center",
         className
       )}
     >
-      <h2 className="font-display text-2xl md:text-3xl tracking-wide">
+      <div className={cn("inline-flex items-center gap-3 text-[10px] uppercase tracking-[0.35em] text-ash", align === "center" && "justify-center")}> 
+        <span className="h-px w-8 bg-smoke" />
+        <span>Kaosoff</span>
+        <span className="h-px w-8 bg-smoke" />
+      </div>
+      <h2 className="mt-3 font-display text-2xl tracking-[0.03em] md:text-3xl">
         {title}
       </h2>
       {subtitle && (
-        <p className="mt-3 text-sm text-ash max-w-lg leading-relaxed">
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ash">
           {subtitle}
         </p>
       )}

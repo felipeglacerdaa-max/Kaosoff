@@ -44,21 +44,21 @@ export default async function ProdutoPage({ params }: PageProps) {
   const discount = getDiscountPercent(product.price, product.originalPrice);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 md:px-8 py-12 md:py-20">
-      <div className="grid md:grid-cols-2 gap-12 md:gap-20">
+    <div className="px-6 py-12 md:px-8 md:py-20">
+      <div className="mx-auto grid max-w-7xl gap-10 rounded-[2rem] border border-smoke/80 bg-gradient-to-br from-paper via-mist/50 to-paper p-6 shadow-[0_20px_80px_rgba(20,17,15,0.06)] md:grid-cols-[1.05fr_0.95fr] md:gap-14 md:p-10">
         <ProductGallery images={product.images} alt={product.name} />
 
         <div className="flex flex-col">
-          <p className="text-[10px] tracking-widest uppercase text-ash">
+          <p className="text-[10px] uppercase tracking-[0.35em] text-ash">
             {CATEGORY_LABELS[product.category]}
           </p>
 
-          <h1 className="font-display text-2xl md:text-3xl tracking-wide mt-2">
+          <h1 className="mt-2 font-display text-2xl tracking-wide md:text-3xl">
             {product.name}
           </h1>
 
-          <div className="flex items-center gap-3 mt-4">
-            <span className="text-lg">{formatPrice(product.price)}</span>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <span className="text-lg font-medium">{formatPrice(product.price)}</span>
             {product.originalPrice && (
               <span className="text-sm text-ash line-through">
                 {formatPrice(product.originalPrice)}
@@ -67,36 +67,38 @@ export default async function ProdutoPage({ params }: PageProps) {
             {discount && <Badge variant="sale">−{discount}%</Badge>}
           </div>
 
-          <div className="flex gap-2 mt-4">
+          <div className="mt-4 flex flex-wrap gap-2">
             {product.isUnique && <Badge variant="unique">Peça única</Badge>}
             {isSold && <Badge variant="sold">Esgotado</Badge>}
           </div>
 
-          <p className="mt-8 text-sm text-ash leading-relaxed">
+          <p className="mt-8 text-sm leading-relaxed text-ash">
             {product.description}
           </p>
 
-          <dl className="mt-8 space-y-3 text-sm">
-            <div className="flex gap-4">
-              <dt className="text-ash w-24 flex-shrink-0">Materiais</dt>
-              <dd>{product.materials}</dd>
-            </div>
-            <div className="flex gap-4">
-              <dt className="text-ash w-24 flex-shrink-0">Dimensões</dt>
-              <dd>{product.dimensions}</dd>
-            </div>
-          </dl>
+          <div className="mt-8 rounded-[1.25rem] border border-smoke/70 bg-paper/90 p-5">
+            <dl className="space-y-3 text-sm">
+              <div className="flex gap-4">
+                <dt className="w-24 flex-shrink-0 text-ash">Materiais</dt>
+                <dd>{product.materials}</dd>
+              </div>
+              <div className="flex gap-4">
+                <dt className="w-24 flex-shrink-0 text-ash">Dimensões</dt>
+                <dd>{product.dimensions}</dd>
+              </div>
+            </dl>
+          </div>
 
           {isUpcoming && product.availableAt && (
-            <div className="mt-10 p-6 bg-mist">
-              <p className="text-[10px] tracking-widest uppercase text-ash mb-4">
+            <div className="mt-8 rounded-[1.25rem] border border-smoke/70 bg-paper/90 p-6">
+              <p className="mb-4 text-[10px] uppercase tracking-[0.35em] text-ash">
                 Disponível em {formatDateTime(product.availableAt)}
               </p>
               <CountdownTimer targetDate={product.availableAt} />
             </div>
           )}
 
-          <div className="mt-10 space-y-3">
+          <div className="mt-8 space-y-3">
             {product.isCustomOrder ? (
               <Link href="/encomendas">
                 <Button className="w-full">Solicitar encomenda</Button>
@@ -116,10 +118,8 @@ export default async function ProdutoPage({ params }: PageProps) {
             ) : null}
           </div>
 
-          <div className="mt-6 pt-6 border-t border-smoke">
-            <p className="text-xs text-ash mb-2">
-              Dúvidas sobre esta peça?
-            </p>
+          <div className="mt-6 border-t border-smoke/70 pt-6">
+            <p className="mb-2 text-xs text-ash">Dúvidas sobre esta peça?</p>
             <WhatsAppButton productName={product.name} />
           </div>
         </div>

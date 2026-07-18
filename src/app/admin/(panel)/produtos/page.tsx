@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
-import Image from "next/image";
+import { useEffect, useState, FormEvent, ChangeEvent } from "react";
 import { Product, Category } from "@/lib/types";
 import { CATEGORIES } from "@/lib/mock-data";
 import { CATEGORY_LABELS } from "@/lib/types";
@@ -17,36 +16,75 @@ export default function AdminProdutosPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImageName, setSelectedImageName] = useState("Nenhuma foto anexada");
 
   async function loadProducts() {
-    const res = await fetch("/api/admin/products");
-    const data = await res.json();
-    setProducts(data);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/admin/products");
+      const data = await res.json();
+      const normalizedProducts = Array.isArray(data)
+        ? data.filter((item: Product | null | undefined) => item && typeof item === "object")
+        : [];
+      setProducts(normalizedProducts);
+    } catch {
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     loadProducts();
   }, []);
 
+  function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setSelectedImage(reader.result);
+        setSelectedImageName(file.name);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
   async function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    await fetch("/api/admin/products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.get("name"),
-        description: form.get("description"),
-        materials: form.get("materials"),
-        dimensions: form.get("dimensions"),
-        price: form.get("price"),
-        category: form.get("category"),
-      }),
-    });
+    try {
+      const res = await fetch("/api/admin/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.get("name"),
+          description: form.get("description"),
+          materials: form.get("materials"),
+          dimensions: form.get("dimensions"),
+          price: form.get("price"),
+          category: form.get("category"),
+          images: selectedImage ? [selectedImage] : undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null);
+        console.error("Erro ao criar produto", payload);
+        return;
+      }
+    } catch (error) {
+      console.error("Falha ao criar produto", error);
+      return;
+    }
+
     setShowForm(false);
-    loadProducts();
+    setSelectedImage(null);
+    setSelectedImageName("Nenhuma foto anexada");
     e.currentTarget.reset();
+    await loadProducts();
   }
 
   async function markSold(id: string) {
@@ -100,6 +138,34 @@ export default function AdminProdutosPage() {
             <Input name="dimensions" label="Dimensões" required />
           </div>
           <Textarea name="description" label="Descrição" required />
+          <div className="border border-dashed border-smoke p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Foto do produto</p>
+                <p className="text-xs text-ash">{selectedImageName}</p>
+              </div>
+              <label className="inline-flex cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={handleImageSelect}
+                />
+                <span className="inline-flex items-center justify-center rounded-none border border-ink/20 bg-ink px-4 py-2 text-[10px] tracking-[0.35em] uppercase text-paper transition-all duration-300 hover:bg-charcoal">
+                  Anexar foto
+                </span>
+              </label>
+            </div>
+            {selectedImage && (
+              <div className="relative h-40 w-full overflow-hidden border border-smoke bg-mist">
+                <img
+                  src={selectedImage}
+                  alt="Preview da foto"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            )}
+          </div>
           <div className="flex gap-3">
             <Button type="submit" size="sm">
               Criar produto
@@ -126,12 +192,13 @@ export default function AdminProdutosPage() {
               className="flex items-center gap-4 border border-smoke p-4"
             >
               <div className="relative w-14 h-18 bg-mist flex-shrink-0 overflow-hidden">
-                <Image
-                  src={product.images[0]}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
-                  sizes="56px"
+                <img
+                  src={product.images?.[0] || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=1000&fit=crop&q=80"}
+                  alt={product.name || "Produto"}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=1000&fit=crop&q=80";
+                  }}
                 />
               </div>
               <div className="flex-1 min-w-0">

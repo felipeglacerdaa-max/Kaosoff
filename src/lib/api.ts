@@ -6,6 +6,10 @@ const supabase = getSupabaseClient();
 
 type SupabaseRow = Record<string, unknown>;
 
+function getSupabaseOrNull() {
+  return supabase;
+}
+
 function getString(row: SupabaseRow, field: string): string {
   const value = row[field];
   return typeof value === "string" ? value : "";
@@ -93,13 +97,21 @@ function mapCheckoutRow(row: SupabaseRow): CheckoutOrder {
 }
 
 export async function getProducts(): Promise<Product[]> {
-  const { data, error } = await supabase.from("products").select("*").eq("is_custom_order", false).order("created_at", { ascending: false });
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return [];
+  }
+  const { data, error } = await client.from("products").select("*").eq("is_custom_order", false).order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []).map(mapProductRow);
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const { data, error } = await supabase.from("products").select("*").eq("slug", slug).maybeSingle();
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return null;
+  }
+  const { data, error } = await client.from("products").select("*").eq("slug", slug).maybeSingle();
   if (error) throw error;
   return data ? mapProductRow(data) : null;
 }
@@ -111,51 +123,95 @@ export async function getProductsByCategory(category: string): Promise<Product[]
 }
 
 export async function getProductsByDrop(dropId: string): Promise<Product[]> {
-  const { data, error } = await supabase.from("products").select("*").eq("drop_id", dropId).eq("is_custom_order", false).order("created_at", { ascending: false });
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return [];
+  }
+  const { data, error } = await client.from("products").select("*").eq("drop_id", dropId).eq("is_custom_order", false).order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []).map(mapProductRow);
 }
 
 export async function getDrops(): Promise<Drop[]> {
-  const { data, error } = await supabase.from("drops").select("*").order("launch_date", { ascending: true });
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return [];
+  }
+  const { data, error } = await client.from("drops").select("*").order("launch_date", { ascending: true });
   if (error) throw error;
   return (data || []).map(mapDropRow);
 }
 
 export async function getDropBySlug(slug: string): Promise<Drop | null> {
-  const { data, error } = await supabase.from("drops").select("*").eq("slug", slug).maybeSingle();
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return null;
+  }
+  const { data, error } = await client.from("drops").select("*").eq("slug", slug).maybeSingle();
   if (error) throw error;
   return data ? mapDropRow(data) : null;
 }
 
 export async function getActiveDrop(): Promise<Drop | null> {
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return null;
+  }
   const now = new Date().toISOString();
-  const { data, error } = await supabase.from("drops").select("*").eq("is_active", true).lte("launch_date", now).order("launch_date", { ascending: false }).limit(1);
+  const { data, error } = await client.from("drops").select("*").eq("is_active", true).lte("launch_date", now).order("launch_date", { ascending: false }).limit(1);
   if (error) throw error;
   return data?.[0] ? mapDropRow(data[0]) : null;
 }
 
 export async function getUpcomingDrop(): Promise<Drop | null> {
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return null;
+  }
   const now = new Date().toISOString();
-  const { data, error } = await supabase.from("drops").select("*").eq("is_active", true).gt("launch_date", now).order("launch_date", { ascending: true }).limit(1);
+  const { data, error } = await client.from("drops").select("*").eq("is_active", true).gt("launch_date", now).order("launch_date", { ascending: true }).limit(1);
   if (error) throw error;
   return data?.[0] ? mapDropRow(data[0]) : null;
 }
 
 export async function getCustomOrders(): Promise<CustomOrder[]> {
-  const { data, error } = await supabase.from("custom_orders").select("*").order("created_at", { ascending: false });
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return [];
+  }
+  const { data, error } = await client.from("custom_orders").select("*").order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []).map(mapOrderRow);
 }
 
 export async function findCustomOrder(cpf: string, orderNumber: string): Promise<CustomOrder | null> {
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return null;
+  }
   const normalized = normalizeCpf(cpf);
-  const { data, error } = await supabase.from("custom_orders").select("*").eq("customer_cpf", normalized).eq("order_number", orderNumber.toUpperCase()).maybeSingle();
+  const { data, error } = await client.from("custom_orders").select("*").eq("customer_cpf", normalized).eq("order_number", orderNumber.toUpperCase()).maybeSingle();
   if (error) throw error;
   return data ? mapOrderRow(data) : null;
 }
 
 export async function createCustomOrder(data: Omit<CustomOrder, "id" | "orderNumber" | "status" | "createdAt" | "updatedAt">): Promise<CustomOrder> {
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return {
+      id: `order-${Date.now()}`,
+      orderNumber: generateOrderNumber(),
+      customerCpf: normalizeCpf(data.customerCpf),
+      customerName: data.customerName,
+      customerEmail: data.customerEmail,
+      customerPhone: data.customerPhone,
+      description: data.description,
+      category: data.category,
+      status: "received",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
   const order = {
     id: `order-${Date.now()}`,
     order_number: generateOrderNumber(),
@@ -169,18 +225,43 @@ export async function createCustomOrder(data: Omit<CustomOrder, "id" | "orderNum
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
-  const { data: inserted, error } = await supabase.from("custom_orders").insert(order).select("*").single();
+  const { data: inserted, error } = await client.from("custom_orders").insert(order).select("*").single();
   if (error) throw error;
   return mapOrderRow(inserted);
 }
 
 export async function updateCustomOrderStatus(id: string, status: CustomOrder["status"]): Promise<CustomOrder | null> {
-  const { data, error } = await supabase.from("custom_orders").update({ status, updated_at: new Date().toISOString() }).eq("id", id).select("*").maybeSingle();
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return null;
+  }
+  const { data, error } = await client.from("custom_orders").update({ status, updated_at: new Date().toISOString() }).eq("id", id).select("*").maybeSingle();
   if (error) throw error;
   return data ? mapOrderRow(data) : null;
 }
 
 export async function createProduct(data: Omit<Product, "id" | "slug" | "createdAt">): Promise<Product> {
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return {
+      id: `prod-${Date.now()}`,
+      slug: data.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-"),
+      name: data.name,
+      description: data.description,
+      materials: data.materials,
+      dimensions: data.dimensions,
+      price: data.price,
+      originalPrice: data.originalPrice,
+      category: data.category,
+      images: data.images,
+      status: data.status,
+      isUnique: data.isUnique,
+      isCustomOrder: data.isCustomOrder,
+      dropId: data.dropId,
+      availableAt: data.availableAt,
+      createdAt: new Date().toISOString(),
+    };
+  }
   const product = {
     id: `prod-${Date.now()}`,
     slug: data.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-"),
@@ -199,12 +280,16 @@ export async function createProduct(data: Omit<Product, "id" | "slug" | "created
     available_at: data.availableAt || null,
     created_at: new Date().toISOString(),
   };
-  const { data: inserted, error } = await supabase.from("products").insert(product).select("*").single();
+  const { data: inserted, error } = await client.from("products").insert(product).select("*").single();
   if (error) throw error;
   return mapProductRow(inserted);
 }
 
 export async function updateProduct(id: string, data: Partial<Product>): Promise<Product | null> {
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return null;
+  }
   const updatePayload: Record<string, unknown> = {};
   if (data.name !== undefined) updatePayload.name = data.name;
   if (data.description !== undefined) updatePayload.description = data.description;
@@ -219,13 +304,17 @@ export async function updateProduct(id: string, data: Partial<Product>): Promise
   if (data.isCustomOrder !== undefined) updatePayload.is_custom_order = data.isCustomOrder;
   if (data.dropId !== undefined) updatePayload.drop_id = data.dropId;
   if (data.availableAt !== undefined) updatePayload.available_at = data.availableAt;
-  const { data: updated, error } = await supabase.from("products").update(updatePayload).eq("id", id).select("*").maybeSingle();
+  const { data: updated, error } = await client.from("products").update(updatePayload).eq("id", id).select("*").maybeSingle();
   if (error) throw error;
   return updated ? mapProductRow(updated) : null;
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
-  const { error } = await supabase.from("products").delete().eq("id", id);
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return false;
+  }
+  const { error } = await client.from("products").delete().eq("id", id);
   if (error) throw error;
   return true;
 }
@@ -235,6 +324,19 @@ export async function markProductAsSold(id: string): Promise<Product | null> {
 }
 
 export async function createDrop(data: Omit<Drop, "id" | "slug">): Promise<Drop> {
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return {
+      id: `drop-${Date.now()}`,
+      slug: data.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-"),
+      name: data.name,
+      description: data.description,
+      launchDate: data.launchDate,
+      coverImage: data.coverImage,
+      productIds: data.productIds,
+      isActive: data.isActive,
+    };
+  }
   const drop = {
     id: `drop-${Date.now()}`,
     slug: data.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-"),
@@ -245,12 +347,16 @@ export async function createDrop(data: Omit<Drop, "id" | "slug">): Promise<Drop>
     product_ids: data.productIds,
     is_active: data.isActive,
   };
-  const { data: inserted, error } = await supabase.from("drops").insert(drop).select("*").single();
+  const { data: inserted, error } = await client.from("drops").insert(drop).select("*").single();
   if (error) throw error;
   return mapDropRow(inserted);
 }
 
 export async function updateDrop(id: string, data: Partial<Drop>): Promise<Drop | null> {
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return null;
+  }
   const updatePayload: Record<string, unknown> = {};
   if (data.name !== undefined) updatePayload.name = data.name;
   if (data.description !== undefined) updatePayload.description = data.description;
@@ -258,18 +364,38 @@ export async function updateDrop(id: string, data: Partial<Drop>): Promise<Drop 
   if (data.coverImage !== undefined) updatePayload.cover_image = data.coverImage;
   if (data.productIds !== undefined) updatePayload.product_ids = data.productIds;
   if (data.isActive !== undefined) updatePayload.is_active = data.isActive;
-  const { data: updated, error } = await supabase.from("drops").update(updatePayload).eq("id", id).select("*").maybeSingle();
+  const { data: updated, error } = await client.from("drops").update(updatePayload).eq("id", id).select("*").maybeSingle();
   if (error) throw error;
   return updated ? mapDropRow(updated) : null;
 }
 
 export async function deleteDrop(id: string): Promise<boolean> {
-  const { error } = await supabase.from("drops").delete().eq("id", id);
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return false;
+  }
+  const { error } = await client.from("drops").delete().eq("id", id);
   if (error) throw error;
   return true;
 }
 
 export async function createCheckoutOrder(data: Omit<CheckoutOrder, "id" | "orderNumber" | "status" | "createdAt">): Promise<CheckoutOrder> {
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return {
+      id: `checkout-${Date.now()}`,
+      orderNumber: generateOrderNumber(),
+      customerCpf: normalizeCpf(data.customerCpf),
+      customerName: data.customerName,
+      customerEmail: data.customerEmail,
+      customerPhone: data.customerPhone,
+      productId: data.productId,
+      amount: data.amount,
+      paymentMethod: data.paymentMethod,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+  }
   const order = {
     id: `checkout-${Date.now()}`,
     order_number: generateOrderNumber(),
@@ -283,15 +409,19 @@ export async function createCheckoutOrder(data: Omit<CheckoutOrder, "id" | "orde
     status: "pending",
     created_at: new Date().toISOString(),
   };
-  const { data: inserted, error } = await supabase.from("checkout_orders").insert(order).select("*").single();
+  const { data: inserted, error } = await client.from("checkout_orders").insert(order).select("*").single();
   if (error) throw error;
   return mapCheckoutRow(inserted);
 }
 
 export async function confirmPayment(orderId: string): Promise<void> {
-  const { error } = await supabase.from("checkout_orders").update({ status: "paid" }).eq("id", orderId);
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return;
+  }
+  const { error } = await client.from("checkout_orders").update({ status: "paid" }).eq("id", orderId);
   if (error) throw error;
-  const { data: order, error: orderError } = await supabase.from("checkout_orders").select("*").eq("id", orderId).maybeSingle();
+  const { data: order, error: orderError } = await client.from("checkout_orders").select("*").eq("id", orderId).maybeSingle();
   if (orderError) throw orderError;
   if (order?.product_id) {
     await markProductAsSold(order.product_id);
@@ -299,13 +429,21 @@ export async function confirmPayment(orderId: string): Promise<void> {
 }
 
 export async function getCheckoutOrders(): Promise<CheckoutOrder[]> {
-  const { data, error } = await supabase.from("checkout_orders").select("*").order("created_at", { ascending: false });
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return [];
+  }
+  const { data, error } = await client.from("checkout_orders").select("*").order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []).map(mapCheckoutRow);
 }
 
 export async function validateAdminCredentials(email: string, password: string): Promise<boolean> {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const client = getSupabaseOrNull();
+  if (!client) {
+    return false;
+  }
+  const { data, error } = await client.auth.signInWithPassword({ email, password });
   if (error) return false;
   return Boolean(data.session);
 }
